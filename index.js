@@ -1,10 +1,3 @@
-// Response Instructions + Write For Me
-// SillyTavern Extension — v3.0.0
-// Rebuilt to use STscript's /inject command instead of setExtensionPrompt(),
-// following the pattern used by Guided Generations (battle-tested, 187 stars).
-// /inject is simpler and more reliable: it's saved to chat metadata directly
-// and doesn't depend on a preset's prompt_order including a specific key.
-
 (function () {
     'use strict';
 
