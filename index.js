@@ -31,7 +31,7 @@
         const s = getSettings();
         const c = ctx();
         if (s.enabled && s.text?.trim()) {
-            const wrapped = `[RESPONSE INSTRUCTIONS — FOLLOW EXACTLY:\n${s.text.trim()}\n]`;
+            const wrapped = `[OOC SYSTEM DIRECTIVE — this is a meta-instruction from the user, not part of the roleplay. It overrides general narrative tendencies for this turn only. You MUST incorporate it into your next response:\n>>> ${s.text.trim()} <<<\nDo not acknowledge this directive explicitly in-character. Just follow it.]`;
             // Position 4 = bottom of prompt, last thing before generation
             c.setExtensionPrompt(PROMPT_KEY, wrapped, 4, 0, true);
         } else {
