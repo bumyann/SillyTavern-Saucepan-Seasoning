@@ -33,13 +33,13 @@ Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I
 
 ## Installation
 
-### via SillyTavern (recommended)
+### Via SillyTavern (recommended)
 1. In ST, go to **Extensions** → **Install extension**
 2. Paste: `https://github.com/bumyann/sillytavern-response-instructions`
 3. Click **Save** — ST installs it automatically
 4. Enable it in the Extensions list
 
-### manual
+### Manual
 1. Download this repo as a ZIP (Code → Download ZIP)
 2. Extract into `SillyTavern/public/extensions/third-party/`
 3. Make sure the folder is named `response-instructions` and contains `manifest.json`, `index.js`, and `style.css`
@@ -74,10 +74,10 @@ This extension injects Response Instructions into your prompt using a key (`resp
 
 **This works automatically for most users.** But if you use a **heavily customized Chat Completion preset** — one where you've manually built out the entire `prompt_order` (common with complex character-system presets like F.A.Y.E. OS, or anything you've deeply restructured yourself) — that preset's order list only includes prompts it explicitly knows about. Since it has no idea our extension exists, Response Instructions can silently fail to reach the AI even though the toggle shows it's "on."
 
-**How to tell if this affects you:**
+**How Do I Know If This Affects Me?:**
 If you toggle Response Instructions on, write something obvious like "always end your response with the word BANANA," send a message, and the AI never does it — and this happens consistently across multiple models — this is almost certainly why.
 
-**The fix (built in, as of v2.1.0):**
+**How Do I Fix It?:**
 Open the Response Instructions panel. If your active preset is incompatible, a yellow warning banner will appear automatically with a **Fix it** button. Click it, and the extension will:
 1. Add a `response_instructions_injection` entry to your preset's prompt list
 2. Insert it into your preset's prompt order (right after chat history, for maximum priority)
@@ -87,7 +87,7 @@ This only needs to be done once per preset. If you create or import a new preset
 
 If you dismiss the banner instead of fixing it, it won't show again for that preset — but Response Instructions also won't work until it's patched (or until you switch back to a compatible preset).
 
-**Manual patch (if the auto-fix button doesn't work for some reason):**
+**Manual Patch (if the auto-fix button doesn't work for some reason):**
 1. Open your preset's **AI Response Configuration**
 2. You'll need to add a new prompt manually via "New prompt" with the identifier `response_instructions_injection`, role `system`, and leave content blank
 3. Drag it into your prompt order, ideally right after Chat History
@@ -109,13 +109,11 @@ Adapts automatically to whatever ST theme you have active via `--SmartTheme*` CS
 
 ## Changelog
 
-**v2.1.1**
-- Response Instructions now injects at both position 4 (end of prompt) AND position 1 (Author's Note depth) simultaneously, for redundancy across different presets and backends
-- Compatibility check and auto-patch now cover both injection points
-
 **v2.1.0**
 - Added automatic preset compatibility detection and one-click patching for custom `prompt_order` presets
 - Fixed Write For Me's `generateRaw` call signature for ST 1.17
+- Response Instructions now injects at both position 4 (end of prompt) AND position 1 (Author's Note depth) simultaneously, for redundancy across different presets and backends
+- Compatibility check and auto-patch now cover both injection points
 
 **v2.0.0**
 - Switched Write For Me from modal to inline panel (fixes mobile not opening)
