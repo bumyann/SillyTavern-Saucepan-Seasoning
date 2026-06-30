@@ -9,6 +9,16 @@ Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I
 
 ---
 
+## ⚠️ v3.0.0 — Rebuilt injection engine
+
+Versions 1.x–2.x used SillyTavern's `setExtensionPrompt()` API, which writes into a generic extension prompt slot that some Chat Completion presets (especially heavily customized ones) silently don't read from. After extensive debugging across multiple models, presets, and chat lengths, this turned out to be unreliable in ways that were hard to predict or patch around consistently.
+
+**v3.0.0 switches to STscript's `/inject` command instead** — the same mechanism used by [Guided Generations](https://github.com/Samueras/GuidedGenerations-Extension), a well-tested extension with 180+ stars. `/inject` writes directly to chat metadata and is read by ST's prompt builder unconditionally, regardless of preset configuration. This should be dramatically more reliable across different presets, backends, and setups.
+
+If you were using the old preset-patching feature from v2.1.x, you can safely remove those patched prompt entries from your preset — they're no longer needed and won't do anything with v3.
+
+---
+
 ## Features
 
 ### 📜 Response Instructions
@@ -17,7 +27,7 @@ Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I
 - Toggle to enable/disable without clearing your text
 - Green dot indicator on the bar when active
 - Preset library — save, rename, load, and delete named instruction sets
-- Injected as a system message, last in the prompt (highest influence position)
+- Injected via STscript `/inject`, depth 0 (last thing before generation, highest influence)
 - Persists until you manually clear it
 
 ### ✨ Write For Me
@@ -33,13 +43,13 @@ Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I
 
 ## Installation
 
-### Via SillyTavern (recommended)
+### via SillyTavern (recommended)
 1. In ST, go to **Extensions** → **Install extension**
 2. Paste: `https://github.com/bumyann/sillytavern-response-instructions`
 3. Click **Save** — ST installs it automatically
 4. Enable it in the Extensions list
 
-### Manual
+### manual
 1. Download this repo as a ZIP (Code → Download ZIP)
 2. Extract into `SillyTavern/public/extensions/third-party/`
 3. Make sure the folder is named `response-instructions` and contains `manifest.json`, `index.js`, and `style.css`
@@ -68,52 +78,41 @@ Both features live in a bar just above the chat input.
 
 ---
 
-## ⚠️ Important: Preset Compatibility
-
-This extension injects Response Instructions into your prompt using a key (`response_instructions_injection`) that SillyTavern reads through its extension prompt system.
-
-**This works automatically for most users.** But if you use a **heavily customized Chat Completion preset** — one where you've manually built out the entire `prompt_order` (common with complex character-system presets like F.A.Y.E. OS, or anything you've deeply restructured yourself) — that preset's order list only includes prompts it explicitly knows about. Since it has no idea our extension exists, Response Instructions can silently fail to reach the AI even though the toggle shows it's "on."
-
-**How Do I Know If This Affects Me?:**
-If you toggle Response Instructions on, write something obvious like "always end your response with the word BANANA," send a message, and the AI never does it — and this happens consistently across multiple models — this is almost certainly why.
-
-**How Do I Fix It?:**
-Open the Response Instructions panel. If your active preset is incompatible, a yellow warning banner will appear automatically with a **Fix it** button. Click it, and the extension will:
-1. Add a `response_instructions_injection` entry to your preset's prompt list
-2. Insert it into your preset's prompt order (right after chat history, for maximum priority)
-3. Save the patched preset
-
-This only needs to be done once per preset. If you create or import a new preset later, you may need to hit **Fix it** again for that preset.
-
-If you dismiss the banner instead of fixing it, it won't show again for that preset — but Response Instructions also won't work until it's patched (or until you switch back to a compatible preset).
-
-**Manual Patch (if the auto-fix button doesn't work for some reason):**
-1. Open your preset's **AI Response Configuration**
-2. You'll need to add a new prompt manually via "New prompt" with the identifier `response_instructions_injection`, role `system`, and leave content blank
-3. Drag it into your prompt order, ideally right after Chat History
-4. Save the preset
-
----
-
 ## Theming
 
-Adapts automatically to whatever ST theme you have active via `--SmartTheme*` CSS variables. Want to customise it further for your own theme? Target `.ri-bar`, `.ri-panel`, `.wfm-panel`, `.ri-modal-inner`, `.ri-compat-banner` etc. in your theme's custom CSS.
+Adapts automatically to whatever ST theme you have active via `--SmartTheme*` CSS variables. Want to customise it further for your own theme? Target `.ri-bar`, `.ri-panel`, `.wfm-panel`, `.ri-modal-inner` etc. in your theme's custom CSS.
 
 ---
 
 ## Requirements
-- SillyTavern 1.17.0+
+- SillyTavern 1.12.9+ (for `/inject` STscript support)
 - Active API connection for Write For Me
+
+---
+
+## Troubleshooting
+
+If instructions still don't seem to reach the AI:
+1. Open the prompt itemization on the AI's response (small icon on the message) and search for `[OOC SYSTEM DIRECTIVE`
+2. If it's missing, check the browser console for `[RI] /inject failed:` errors
+3. Confirm the green dot is showing on the Instructions button before sending
 
 ---
 
 ## Changelog
 
+**v3.0.0**
+- Complete rebuild of the injection engine using STscript `/inject` instead of `setExtensionPrompt()`
+- Removed the preset auto-patch feature (no longer necessary)
+- Fixed reliability issues across multiple presets, backends, and chat lengths
+
+**v2.1.1**
+- Response Instructions injected at both position 4 (end of prompt) AND position 1 (Author's Note depth) simultaneously, for redundancy across different presets and backends
+- Compatibility check and auto-patch covered both injection points
+
 **v2.1.0**
 - Added automatic preset compatibility detection and one-click patching for custom `prompt_order` presets
 - Fixed Write For Me's `generateRaw` call signature for ST 1.17
-- Response Instructions now injects at both position 4 (end of prompt) AND position 1 (Author's Note depth) simultaneously, for redundancy across different presets and backends
-- Compatibility check and auto-patch now cover both injection points
 
 **v2.0.0**
 - Switched Write For Me from modal to inline panel (fixes mobile not opening)

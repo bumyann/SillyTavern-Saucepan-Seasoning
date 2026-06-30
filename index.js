@@ -1,13 +1,16 @@
 // Response Instructions + Write For Me
-// SillyTavern Extension — fully inline, no modals
+// SillyTavern Extension — v3.0.0
+// Rebuilt to use STscript's /inject command instead of setExtensionPrompt(),
+// following the pattern used by Guided Generations (battle-tested, 187 stars).
+// /inject is simpler and more reliable: it's saved to chat metadata directly
+// and doesn't depend on a preset's prompt_order including a specific key.
 
 (function () {
     'use strict';
 
     const EXT_NAME = 'response-instructions';
-    const EXT_VERSION = '2.1.1';
-    const PROMPT_KEY = 'response_instructions_injection';
-    const PROMPT_KEY_AN = 'response_instructions_injection_an'; // Author's Note depth fallback
+    const EXT_VERSION = '3.0.0';
+    const INJECT_ID = 'response_instructions';
 
     console.log(`[RI] Response Instructions v${EXT_VERSION} loading…`);
 
@@ -16,7 +19,6 @@
         text: '',
         presets: [],
         wfm_presets: [],
-        dismissed_patch_warning: false,
     };
 
     function ctx() { return window.SillyTavern.getContext(); }
@@ -31,103 +33,30 @@
         return s[EXT_NAME];
     }
 
-    // ── Preset compatibility check ───────────────────────────────────────────
-    // Some Chat Completion presets use a fully manual prompt_order that
-    // explicitly lists every component. If our key isn't in that list,
-    // setExtensionPrompt() writes data that never gets read.
-    function getActivePromptOrder() {
-        const ccs = ctx().chatCompletionSettings;
-        if (!ccs || !Array.isArray(ccs.prompt_order)) return null;
-        // prompt_order is keyed per character; find the active one (or first/default)
-        const charId = ctx().characterId;
-        let entry = ccs.prompt_order.find(o => String(o.character_id) === String(charId));
-        if (!entry) entry = ccs.prompt_order.find(o => o.character_id === 100001) || ccs.prompt_order[0];
-        return entry || null;
-    }
-
-    function isPresetCompatible() {
-        const order = getActivePromptOrder();
-        if (!order || !Array.isArray(order.order)) return true; // can't determine, assume fine
-        // Compatible if EITHER key is present in the explicit order —
-        // since we inject at both position 4 and position 1 (Author's Note),
-        // only one needs to land for instructions to actually reach the AI.
-        return order.order.some(e => e.identifier === PROMPT_KEY || e.identifier === PROMPT_KEY_AN);
-    }
-
-    function patchActivePreset() {
-        const ccs = ctx().chatCompletionSettings;
-        const order = getActivePromptOrder();
-        if (!ccs || !order) {
-            window.toastr?.error('Could not find an active Chat Completion preset to patch.');
-            return false;
-        }
-
-        if (!Array.isArray(ccs.prompts)) ccs.prompts = [];
-
-        const ensurePromptEntry = (id, name) => {
-            let entry = ccs.prompts.find(p => p.identifier === id);
-            if (!entry) {
-                entry = {
-                    identifier: id,
-                    name,
-                    system_prompt: false,
-                    role: 'system',
-                    content: '',
-                    injection_position: 0,
-                    injection_depth: 0,
-                    forbid_overrides: false,
-                    marker: false,
-                    enabled: true,
-                };
-                ccs.prompts.push(entry);
-            }
-        };
-
-        ensurePromptEntry(PROMPT_KEY, '📜 Response Instructions');
-        ensurePromptEntry(PROMPT_KEY_AN, '📜 Response Instructions (Author\'s Note)');
-
-        // Insert both into prompt_order if missing — right after chatHistory for max priority
-        const idx = order.order.findIndex(e => e.identifier === 'chatHistory');
-        const insertAt = idx >= 0 ? idx + 1 : order.order.length;
-
-        if (!order.order.some(e => e.identifier === PROMPT_KEY)) {
-            order.order.splice(insertAt, 0, { identifier: PROMPT_KEY, enabled: true });
-        }
-        if (!order.order.some(e => e.identifier === PROMPT_KEY_AN)) {
-            order.order.splice(insertAt, 0, { identifier: PROMPT_KEY_AN, enabled: true });
-        }
-
-        save();
-        window.toastr?.success('Preset patched! Response Instructions will now inject correctly.');
-        return true;
-    }
-
-    function showCompatibilityWarning() {
-        const s = getSettings();
-        if (s.dismissed_patch_warning) return;
-        if (isPresetCompatible()) return;
-
-        const banner = document.getElementById('ri-compat-banner');
-        if (banner) banner.classList.remove('ri-hidden');
-    }
-
-    // ── Prompt injection ──────────────────────────────────────────────────────
-    function updatePromptInjection() {
+    // ── Prompt injection via STscript /inject ───────────────────────────────
+    // This is saved to chat metadata and read directly by ST's prompt builder
+    // — it does NOT depend on a preset's prompt_order including a specific key,
+    // which was the root cause of our previous approach silently failing.
+    async function updatePromptInjection() {
         const s = getSettings();
         const c = ctx();
-        if (s.enabled && s.text?.trim()) {
-            const wrapped = `[OOC SYSTEM DIRECTIVE — this is a meta-instruction from the user, not part of the roleplay. It overrides general narrative tendencies for this turn only. You MUST incorporate it into your next response:\n>>> ${s.text.trim()} <<<\nDo not acknowledge this directive explicitly in-character. Just follow it.]`;
-            // Inject at BOTH positions for redundancy — different ST code paths
-            // (and possibly different presets/backends) respect different slots.
-            // Position 4 = bottom of compiled prompt, last thing before generation
-            c.setExtensionPrompt(PROMPT_KEY, wrapped, 4, 0, true);
-            // Position 1 = Author's Note depth — has its own dedicated, often more
-            // permissive handling path in ST that some presets pick up even when
-            // they don't explicitly list the generic extension-prompt slot
-            c.setExtensionPrompt(PROMPT_KEY_AN, wrapped, 1, 0, true);
-        } else {
-            c.setExtensionPrompt(PROMPT_KEY, '', 4, 0, false);
-            c.setExtensionPrompt(PROMPT_KEY_AN, '', 1, 0, false);
+        const text = (s.enabled && s.text?.trim()) ? s.text.trim() : '';
+
+        // Escape pipe characters which are STscript command separators
+        const escaped = text.replace(/\|/g, '\\|');
+
+        const wrapped = escaped
+            ? `[OOC SYSTEM DIRECTIVE — this is a meta-instruction from the user, not part of the roleplay. It overrides general narrative tendencies for this turn only. You MUST incorporate it into your next response: >>> ${escaped} <<< Do not acknowledge this directive explicitly in-character. Just follow it.]`
+            : '';
+
+        // position=chat (in the chat history flow), depth=0 (right before the
+        // next generation, the most influential spot), role=system
+        const command = `/inject id=${INJECT_ID} position=chat depth=0 role=system ${wrapped}`;
+
+        try {
+            await c.executeSlashCommandsWithOptions(command, { showOutput: false });
+        } catch (err) {
+            console.error('[RI] /inject failed:', err);
         }
     }
 
@@ -149,8 +78,7 @@
         el.addEventListener('touchend', e => { e.preventDefault(); fn(); });
     }
 
-    // ── Panel toggling ────────────────────────────────────────────────────────
-    // Only one panel visible at a time (ri, ri-lib, wfm, wfm-lib)
+    // ── Panel toggling — only one panel visible at a time ───────────────────
     const PANELS = ['ri-panel', 'ri-lib-panel', 'wfm-panel', 'wfm-lib-panel'];
 
     function showPanel(id) {
@@ -210,14 +138,14 @@
             });
         });
         list.querySelectorAll('.ri-preset-load').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const s = getSettings();
                 const preset = s.presets[parseInt(btn.dataset.idx)];
                 if (!preset) return;
                 const ta = document.getElementById('ri-textarea');
                 if (ta) ta.value = preset.text;
                 s.text = preset.text;
-                updatePromptInjection(); updateIndicator(); save();
+                await updatePromptInjection(); updateIndicator(); save();
                 showPanel('ri-panel');
             });
         });
@@ -430,20 +358,8 @@
                     </button>
                 </div>
             </div>
-            <div id="ri-compat-banner" class="ri-compat-banner ri-hidden">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                <span class="ri-compat-text">Your current preset doesn't include Response Instructions in its prompt order, so it won't reach the AI.</span>
-                <div class="ri-compat-actions">
-                    <button id="ri-patch-btn" class="ri-icon-btn" title="Auto-patch this preset">
-                        <i class="fa-solid fa-wrench"></i> Fix it
-                    </button>
-                    <button id="ri-compat-dismiss-btn" class="ri-icon-btn" title="Dismiss">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-            </div>
             <textarea id="ri-textarea" class="ri-textarea"
-                placeholder="Write response instructions here… No character limit. Injected as a system prompt for the next reply."
+                placeholder="Write response instructions here… No character limit. Injected via /inject for the next reply."
             >${escapeHtml(s.text || '')}</textarea>`;
         bar.parentNode.insertBefore(riPanel, bar);
 
@@ -539,12 +455,7 @@
         bar.parentNode.insertBefore(wfmLibPanel, bar);
 
         // ── Wire up bar ──
-        addTapListener(document.getElementById('ri-bar-ri-btn'), () => {
-            togglePanel('ri-panel');
-            if (!document.getElementById('ri-panel').classList.contains('ri-hidden')) {
-                showCompatibilityWarning();
-            }
-        });
+        addTapListener(document.getElementById('ri-bar-ri-btn'), () => togglePanel('ri-panel'));
         addTapListener(document.getElementById('ri-bar-wfm-btn'), () => {
             const stTextarea = document.getElementById('send_textarea');
             const editor = document.getElementById('wfm-editor');
@@ -558,33 +469,26 @@
 
         // ── Wire up RI panel ──
         const riTextarea = document.getElementById('ri-textarea');
+        let debounceTimer = null;
         riTextarea.addEventListener('input', () => {
             s.text = riTextarea.value;
-            updatePromptInjection(); updateIndicator(); save();
+            updateIndicator(); save();
+            // Debounce the /inject call slightly so we're not spamming STscript on every keystroke
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => updatePromptInjection(), 400);
         });
-        document.getElementById('ri-toggle').addEventListener('change', e => {
+        document.getElementById('ri-toggle').addEventListener('change', async e => {
             s.enabled = e.target.checked;
-            updatePromptInjection(); updateIndicator(); save();
+            await updatePromptInjection(); updateIndicator(); save();
         });
-        document.getElementById('ri-clear-btn').addEventListener('click', () => {
+        document.getElementById('ri-clear-btn').addEventListener('click', async () => {
             riTextarea.value = ''; s.text = ''; s.enabled = false;
             document.getElementById('ri-toggle').checked = false;
-            updatePromptInjection(); updateIndicator(); save();
+            await updatePromptInjection(); updateIndicator(); save();
         });
         document.getElementById('ri-close-btn').addEventListener('click', hideAll);
         document.getElementById('ri-library-btn').addEventListener('click', () => {
             renderPresets(); showPanel('ri-lib-panel');
-        });
-
-        // ── Wire up compatibility banner ──
-        document.getElementById('ri-patch-btn').addEventListener('click', () => {
-            const success = patchActivePreset();
-            if (success) document.getElementById('ri-compat-banner')?.classList.add('ri-hidden');
-        });
-        document.getElementById('ri-compat-dismiss-btn').addEventListener('click', () => {
-            getSettings().dismissed_patch_warning = true;
-            save();
-            document.getElementById('ri-compat-banner')?.classList.add('ri-hidden');
         });
 
         // ── Wire up RI library panel ──
@@ -612,32 +516,29 @@
         document.getElementById('wfm-save-preset-btn').addEventListener('click', saveWfmPreset);
 
         updateIndicator();
-
-        // Re-check compatibility if the user switches presets while the panel might be open
-        if (c.eventSource && c.eventTypes?.OAI_PRESET_CHANGED_AFTER) {
-            c.eventSource.on(c.eventTypes.OAI_PRESET_CHANGED_AFTER, () => {
-                const panel = document.getElementById('ri-panel');
-                if (panel && !panel.classList.contains('ri-hidden')) {
-                    showCompatibilityWarning();
-                } else {
-                    document.getElementById('ri-compat-banner')?.classList.add('ri-hidden');
-                }
-            });
-        }
-
         console.log('[RI] UI injected successfully');
     }
 
     // ── Boot ──────────────────────────────────────────────────────────────────
-    function tryInit() {
+    async function tryInit() {
         if (!window.SillyTavern?.getContext) { setTimeout(tryInit, 200); return; }
         const c = ctx();
         if (!c.extensionSettings[EXT_NAME]) c.extensionSettings[EXT_NAME] = {};
         c.extensionSettings[EXT_NAME] = { ...defaultSettings, ...c.extensionSettings[EXT_NAME] };
-        updatePromptInjection();
+
+        // Re-apply the injection on chat load/switch, since /inject is saved
+        // per-chat in chat_metadata and won't automatically carry over
         if (c.eventSource && c.eventTypes) {
             c.eventSource.on(c.eventTypes.APP_READY, () => injectUI());
+            if (c.eventTypes.CHAT_CHANGED) {
+                c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
+                    setTimeout(() => updatePromptInjection(), 300);
+                });
+            }
         }
+
+        await updatePromptInjection();
+
         setTimeout(() => { if (!document.getElementById('ri-bar')) injectUI(); }, 500);
         setTimeout(() => { if (!document.getElementById('ri-bar')) injectUI(); }, 2000);
     }
