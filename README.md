@@ -1,11 +1,11 @@
 # Response Instructions + Write For Me
 ### A SillyTavern Extension by bumyann
 
-tired of saucepan's 500 char limit? me too. this adds response instructions (inject a quick prompt before the ai replies) and a write-for-me panel (let the ai draft your user message) straight into ST. presets, no char limits, mobile friendly.
+Tired of Saucepan's 500 character limit? Me too. This adds response instructions (inject a quick prompt before the ai replies) and a write-for-me panel (let the ai draft your user message) straight into ST. Presets, no character limits, mobile friendly.
 
-made this bc i loved saucepan's RI and WFM ui too much but kept getting pulled back to ST for how customizable it is — so i just. made it myself. now i don't have to choose lol
+Made this bc I loved Saucepan's Response Instructions and Write For Me UI too much but kept getting pulled back to ST for how customizable it is — so I just. made it myself. now I don't have to choose lol.
 
-Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I did test it before publishing it because I'm not a rat. Also, I'm aware Guided Generations, Impersonate, etc. exists but I want ultraspecific things and it's just not the same </3 Do what you will with this information.
+Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I did test it before publishing it because I'm not a rat. Also, I'm aware Guided Generations, Impersonate, etc. exists but I want something simpler and ultra-speciific because I'm funny like that </3 Do what you will with this information.
 
 ---
 
