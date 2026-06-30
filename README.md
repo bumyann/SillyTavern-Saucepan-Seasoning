@@ -9,13 +9,11 @@ Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I
 
 ---
 
-## ⚠️ v3.0.0 — Rebuilt injection engine
+## ⚠️ V2.0 — Rebuilt injection engine
 
-Versions 1.x–2.x used SillyTavern's `setExtensionPrompt()` API, which writes into a generic extension prompt slot that some Chat Completion presets (especially heavily customized ones) silently don't read from. After extensive debugging across multiple models, presets, and chat lengths, this turned out to be unreliable in ways that were hard to predict or patch around consistently.
+Versions 1.x used SillyTavern's `setExtensionPrompt()` API, which writes into a generic extension prompt slot that some Chat Completion presets (especially heavily customized ones) silently don't read from. After extensive debugging across multiple models, presets, and chat lengths, this turned out to be unreliable in ways that were hard to predict or patch around consistently.
 
-**v3.0.0 switches to STscript's `/inject` command instead** — the same mechanism used by [Guided Generations](https://github.com/Samueras/GuidedGenerations-Extension), a well-tested extension with 180+ stars. `/inject` writes directly to chat metadata and is read by ST's prompt builder unconditionally, regardless of preset configuration. This should be dramatically more reliable across different presets, backends, and setups.
-
-If you were using the old preset-patching feature from v2.1.x, you can safely remove those patched prompt entries from your preset — they're no longer needed and won't do anything with v3.
+**V2.0 switches to STscript's `/inject` command instead** — the same mechanism used by [Guided Generations](https://github.com/Samueras/GuidedGenerations-Extension), a well-tested extension with 180+ stars. `/inject` writes directly to chat metadata and is read by ST's prompt builder unconditionally, regardless of preset configuration. This should be dramatically more reliable across different presets, backends, and setups.
 
 ---
 
@@ -43,13 +41,13 @@ If you were using the old preset-patching feature from v2.1.x, you can safely re
 
 ## Installation
 
-### via SillyTavern (recommended)
+### Via SillyTavern (recommended)
 1. In ST, go to **Extensions** → **Install extension**
 2. Paste: `https://github.com/bumyann/sillytavern-response-instructions`
 3. Click **Save** — ST installs it automatically
 4. Enable it in the Extensions list
 
-### manual
+### Manual
 1. Download this repo as a ZIP (Code → Download ZIP)
 2. Extract into `SillyTavern/public/extensions/third-party/`
 3. Make sure the folder is named `response-instructions` and contains `manifest.json`, `index.js`, and `style.css`
@@ -101,20 +99,20 @@ If instructions still don't seem to reach the AI:
 
 ## Changelog
 
-**v3.0.0**
+**v2.0.0**
 - Complete rebuild of the injection engine using STscript `/inject` instead of `setExtensionPrompt()`
 - Removed the preset auto-patch feature (no longer necessary)
 - Fixed reliability issues across multiple presets, backends, and chat lengths
 
-**v2.1.1**
+**v1.1.1**
 - Response Instructions injected at both position 4 (end of prompt) AND position 1 (Author's Note depth) simultaneously, for redundancy across different presets and backends
 - Compatibility check and auto-patch covered both injection points
 
-**v2.1.0**
+**v1.1.0**
 - Added automatic preset compatibility detection and one-click patching for custom `prompt_order` presets
 - Fixed Write For Me's `generateRaw` call signature for ST 1.17
 
-**v2.0.0**
+**v1.0.0**
 - Switched Write For Me from modal to inline panel (fixes mobile not opening)
 - Fully adaptive theming via `--SmartTheme*` variables only
 - Added preset rename for both libraries
