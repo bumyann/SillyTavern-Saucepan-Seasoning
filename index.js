@@ -5,7 +5,10 @@
     'use strict';
 
     const EXT_NAME = 'response-instructions';
+    const EXT_VERSION = '2.0.0';
     const PROMPT_KEY = 'response_instructions_injection';
+
+    console.log(`[RI] Response Instructions v${EXT_VERSION} loading…`);
 
     const defaultSettings = {
         enabled: false,
