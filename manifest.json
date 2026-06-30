@@ -1,7 +1,7 @@
 {
     "display_name": "Response Instructions",
     "name": "response-instructions",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "author": "bumyann",
     "description": "Saucepan-style response instructions and write-for-me drafting tool for SillyTavern.",
     "js": "index.js",

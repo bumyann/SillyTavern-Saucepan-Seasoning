@@ -333,6 +333,45 @@
     background: rgba(229,115,115,0.12) !important;
 }
 
+/* ── Preset Compatibility Banner ── */
+.ri-compat-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 180, 0, 0.12);
+    border: 1px solid rgba(255, 180, 0, 0.4);
+    border-radius: 5px;
+    font-size: 0.78rem;
+    color: var(--SmartThemeBodyColor, #ddd);
+    line-height: 1.4;
+}
+
+.ri-compat-banner.ri-hidden { display: none; }
+
+.ri-compat-banner i.fa-triangle-exclamation {
+    color: #ffb400;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.ri-compat-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.ri-compat-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.ri-compat-actions .ri-icon-btn {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    white-space: nowrap;
+}
+
 /* ── WFM Panel extras ── */
 .wfm-panel { gap: 6px; }
 
