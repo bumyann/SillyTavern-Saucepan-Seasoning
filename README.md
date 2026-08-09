@@ -1,19 +1,9 @@
 # Response Instructions + Write For Me
-### A SillyTavern Extension by bumyann
-
-Tired of Saucepan's 500 character limit? Me too. This adds response instructions (inject a quick prompt before the ai replies) and a write-for-me panel (let the ai draft your user message) straight into ST. Presets, no character limits, mobile friendly.
+Tired of Saucepan's character limit? Me too. This adds response instructions (inject a quick prompt before the ai replies) and a write-for-me panel (let the ai draft your user message) straight into ST. Presets, no character limits, mobile friendly.
 
 Made this bc I loved Saucepan's Response Instructions and Write For Me UI too much but kept getting pulled back to ST for how customizable it is — so I just. made it myself. now I don't have to choose lol.
 
 Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I did test it before publishing it because I'm not a rat. Also, I'm aware Guided Generations, Impersonate, etc. exists but I want something simpler and ultra-speciific because I'm funny like that </3 Do what you will with this information.
-
----
-
-## ⚠️ V2.0 — Rebuilt injection engine
-
-Versions 1.x used SillyTavern's `setExtensionPrompt()` API, which writes into a generic extension prompt slot that some Chat Completion presets (especially heavily customized ones) silently don't read from. After extensive debugging across multiple models, presets, and chat lengths, this turned out to be unreliable in ways that were hard to predict or patch around consistently.
-
-**V2.0 switches to STscript's `/inject` command instead** — the same mechanism used by [Guided Generations](https://github.com/Samueras/GuidedGenerations-Extension), a well-tested extension with 180+ stars. `/inject` writes directly to chat metadata and is read by ST's prompt builder unconditionally, regardless of preset configuration. This should be dramatically more reliable across different presets, backends, and setups.
 
 ---
 
@@ -94,28 +84,6 @@ If instructions still don't seem to reach the AI:
 1. Open the prompt itemization on the AI's response (small icon on the message) and search for `[OOC SYSTEM DIRECTIVE`
 2. If it's missing, check the browser console for `[RI] /inject failed:` errors
 3. Confirm the green dot is showing on the Instructions button before sending
-
----
-
-## Changelog
-
-**v2.0.0**
-- Complete rebuild of the injection engine using STscript `/inject` instead of `setExtensionPrompt()`
-- Removed the preset auto-patch feature (no longer necessary)
-- Fixed reliability issues across multiple presets, backends, and chat lengths
-
-**v1.1.1**
-- Response Instructions injected at both position 4 (end of prompt) AND position 1 (Author's Note depth) simultaneously, for redundancy across different presets and backends
-- Compatibility check and auto-patch covered both injection points
-
-**v1.1.0**
-- Added automatic preset compatibility detection and one-click patching for custom `prompt_order` presets
-- Fixed Write For Me's `generateRaw` call signature for ST 1.17
-
-**v1.0.0**
-- Switched Write For Me from modal to inline panel (fixes mobile not opening)
-- Fully adaptive theming via `--SmartTheme*` variables only
-- Added preset rename for both libraries
 
 ---
 
