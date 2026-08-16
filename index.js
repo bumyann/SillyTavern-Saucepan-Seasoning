@@ -165,16 +165,19 @@
     }
 
     // ── Simple mode ───────────────────────────────────────────────────────────
-    function updatePreview() {
+    function updatePreview(forcedMode) {
         const s = getSettings();
         const preview = document.getElementById('ri-preview');
         if (!preview) return;
         // Preview only meaningful in simple mode — custom mode has the textarea
-        if (s.ri_mode !== 'simple') {
+        const mode = forcedMode !== undefined ? forcedMode : s.ri_mode;
+        if (mode !== 'simple') {
             preview.textContent = '';
             preview.classList.add('ri-hidden');
+            preview.style.display = 'none';
             return;
         }
+        preview.style.display = '';
         const composed = composeSimpleInstruction(s.simple_selections || {});
         if (composed.trim()) {
             preview.textContent = composed;
@@ -278,7 +281,7 @@
             s.text = composeSimpleInstruction(s.simple_selections || {});
         }
 
-        updatePreview();
+        updatePreview(mode);
     }
 
     // ── RI Preset Library ─────────────────────────────────────────────────────
