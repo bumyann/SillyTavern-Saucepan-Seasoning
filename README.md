@@ -1,46 +1,82 @@
-# Response Instructions + Write For Me
-Tired of Saucepan's character limit? Me too. This adds response instructions (inject a quick prompt before the ai replies) and a write-for-me panel (let the ai draft your user message) straight into ST. Presets, no character limits, mobile friendly.
+# Saucepan Seasoning — SillyTavern
 
-Made this bc I loved Saucepan's Response Instructions and Write For Me UI too much but kept getting pulled back to ST for how customizable it is — so I just. made it myself. now I don't have to choose lol.
+<img src="https://i.imgur.com/x8a5kCp.png" alt="SaucepanSeasoning">
 
-Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I did test it before publishing it because I'm not a rat. Also, I'm aware Guided Generations, Impersonate, etc. exists but I want something simpler and ultra-speciific because I'm funny like that </3 Do what you will with this information.
+Port of SaucepanAI's response instructions and write-for-me UI for **SillyTavern**, as a native extension. Made this because I loved Saucepan's in-chat tools too much but kept getting pulled back to ST for how customizable it is — so I just ported them. now I don't have to choose lol.
+
+Disclaimer: Vibe-coded with Claude. Tested before publishing because I'm not a rat. Yes, I know Guided Generations, Impersonate, etc. exists. I want something simpler and ultra-specific because I'm funny like that </3
 
 ---
 
 ## Features
 
-### 📜 Response Instructions
-- Persistent instruction panel above the chat input
-- Write steering instructions for the AI's next reply — **no character limit**
-- Toggle to enable/disable without clearing your text
-- Green dot indicator on the bar when active
+### ✦ Response Instructions
+
+Inject a steering instruction into the prompt before every AI reply — no character limit, no fuss.
+
+- **Simple mode** — chip selectors for length, style, speak for, intimacy, pacing, and narration balance. picks compose into a clean natural language instruction automatically. good for quick setups without thinking too hard.
+- **Custom mode** — raw freeform textarea. write exactly what you want, no restrictions.
+- Toggle on/off at any time without clearing your text
+- Green dot indicator on the bar stays visible when active, even with the panel closed
 - Preset library — save, rename, load, and delete named instruction sets
 - Injected via STscript `/inject`, depth 0 (last thing before generation, highest influence)
-- Persists until you manually clear it
 
-### ✨ Write For Me
-- AI-powered message drafting panel, also above the chat input
-- Optionally write an instruction to steer how your message is written
-- Hit **Generate** — uses your currently connected ST API and model
-- Browse multiple drafts with ← → navigation
-- Edit the result directly before using it
-- Hit **Use this** to push the draft into the chat input, then send normally
-- Separate preset library, fully independent from Response Instructions
+### ✦ Write For Me
+
+AI drafts a reply for you using your active ST connection and the current chat context.
+
+- Add an optional direction (`act nervous`, `change the subject`, `confess feelings`…) or leave it blank
+- Hit **Generate** — uses whatever API and model you have connected in ST
+- Browse drafts with ← → navigation, generate more if you don't like what you got
+- **Bookmark** drafts you like with 🔖 — find them later in the **Saved** tab
+- Hit **Use this** to drop the draft into the chat input, then send as normal
+- Separate preset library for instructions, fully independent from Response Instructions
 
 ---
 
-## Installation
+## Simple Mode — what does each field inject?
+
+| Field | Option | Injected instruction |
+|---|---|---|
+| Length | Short | Keep your response brief and concise. |
+| | Medium | Write a moderate length response. |
+| | Long | Write a long, detailed response. |
+| | Essay | Write a lengthy, essay-style response with thorough detail. |
+| | Ramble | Write a lengthy, rambling response — don't cut yourself short. |
+| Style | 1st Person | Narrate in first person. |
+| | 2nd Person | Narrate in second person, addressing the user as "you". |
+| | 3rd Person | Narrate in third person. |
+| | Texting | Write in a casual text messaging style — short messages, no prose. |
+| Speak For | Companion only | Only write dialogue and actions for your character. Do not write for the user. |
+| | Both | Write dialogue and actions for both your character and the user. |
+| Intimacy | Platonic | Keep the tone platonic. Avoid romantic or sexual content. |
+| | Romantic | Keep the tone romantic and emotionally intimate. |
+| | Sexual | Sexual content is permitted. |
+| | Explicit | Explicit sexual content is permitted. Do not fade to black. |
+| Story Pacing | Slow | Use a slow pace — linger on details, emotions, and atmosphere. |
+| | Fast | Use a fast pace — keep things moving, minimize dwelling. |
+| Narration vs Dialogue | Narration | Focus on narration and description over dialogue. |
+| | Balanced | Balance narration and dialogue equally. |
+| | Dialogue | Focus on dialogue over narration and description. |
+
+Default on any field = nothing injected for that field. A live preview at the bottom of the panel shows the exact string that'll be sent.
+
+---
+
+## Install
 
 ### Via SillyTavern (recommended)
+
 1. In ST, go to **Extensions** → **Install extension**
-2. Paste: `https://github.com/bumyann/sillytavern-response-instructions`
+2. Paste: `https://github.com/bumyann/SillyTavern-Response-Instructions`
 3. Click **Save** — ST installs it automatically
 4. Enable it in the Extensions list
 
 ### Manual
+
 1. Download this repo as a ZIP (Code → Download ZIP)
 2. Extract into `SillyTavern/public/extensions/third-party/`
-3. Make sure the folder is named `response-instructions` and contains `manifest.json`, `index.js`, and `style.css`
+3. Make sure the folder is named `saucepan-seasoning` and contains `manifest.json`, `index.js`, and `style.css`
 4. Reload ST and enable the extension under Extensions
 
 ---
@@ -50,42 +86,37 @@ Disclaimer: I didn't actually make it. This shit is vibe-coded to the max. But I
 Both features live in a bar just above the chat input.
 
 **Response Instructions:**
-- Click **Instructions** to expand the panel
-- Type whatever you want — no limit
-- Toggle **ON** → green dot appears, instructions inject on the next send
-- 📁 folder icon → preset library
-- 🗑️ trash icon → clear instructions
-- ✕ → collapse the panel (stays active if toggled on)
+
+- Click the 📜 button to open the panel
+- Pick your settings in Simple mode, or switch to Custom for freeform input
+- Toggle **ON** — green dot appears on the button, instructions inject on next send
+- 📁 → preset library · 🗑 → clear · ✕ → close panel
 
 **Write For Me:**
-- Click **Write For Me** to expand the panel
-- Optionally add an instruction e.g. *"act nervous and avoid eye contact"*
-- **Generate** → AI drafts a message using your current chat context
-- Generate again for another draft, browse with ← →
-- Edit freely, then **Use this** → copied into chat input, ready to send
 
----
-
-## Theming
-
-Adapts automatically to whatever ST theme you have active via `--SmartTheme*` CSS variables. Want to customise it further for your own theme? Target `.ri-bar`, `.ri-panel`, `.wfm-panel`, `.ri-modal-inner` etc. in your theme's custom CSS.
-
----
-
-## Requirements
-- SillyTavern 1.12.9+ (for `/inject` STscript support)
-- Active API connection for Write For Me
+- Click the ✦ button to open the panel
+- Optionally add a direction, hit **Generate**
+- Browse drafts with ← → · bookmark one with 🔖 to save it
+- **Use this** → drops the draft into chat input ready to send
 
 ---
 
 ## Troubleshooting
 
-If instructions still don't seem to reach the AI:
+If instructions don't seem to be reaching the AI:
+
 1. Open the prompt itemization on the AI's response (small icon on the message) and search for `[OOC SYSTEM DIRECTIVE`
-2. If it's missing, check the browser console for `[RI] /inject failed:` errors
+2. If it's missing, check the browser console for `[SS] /inject failed:` errors
 3. Confirm the green dot is showing on the Instructions button before sending
 
 ---
 
+## Credits
+
+Feature design by [SaucepanAI](https://saucepan.ai). SillyTavern port by [bumyann](https://github.com/bumyann).
+
+---
+
 ## License
+
 MIT
