@@ -629,7 +629,7 @@
                     placeholder="Write response instructions here… No character limit. Injected via /inject for the next reply."
                 >${escapeHtml(s.text || '')}</textarea>
             </div>
-            <p id="ri-preview" class="ri-preview ${(!s.text?.trim()) ? 'ri-hidden' : ''}">${escapeHtml(s.text || '')}</p>`;
+            <p id="ri-preview" class="ri-preview ri-hidden"></p>`;
         bar.parentNode.insertBefore(riPanel, bar);
 
         // ── RI Library Panel ──
