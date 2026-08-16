@@ -169,9 +169,13 @@
         const s = getSettings();
         const preview = document.getElementById('ri-preview');
         if (!preview) return;
-        const composed = s.ri_mode === 'simple'
-            ? composeSimpleInstruction(s.simple_selections || {})
-            : (s.text || '');
+        // Preview only meaningful in simple mode — custom mode has the textarea
+        if (s.ri_mode !== 'simple') {
+            preview.textContent = '';
+            preview.classList.add('ri-hidden');
+            return;
+        }
+        const composed = composeSimpleInstruction(s.simple_selections || {});
         if (composed.trim()) {
             preview.textContent = composed;
             preview.classList.remove('ri-hidden');
