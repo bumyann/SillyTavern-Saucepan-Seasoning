@@ -2,7 +2,7 @@
     'use strict';
 
     const EXT_NAME = 'saucepan-seasoning';
-    const EXT_VERSION = '3.0.0';
+    const EXT_VERSION = '2.1.0';
     const INJECT_ID = 'response_instructions';
 
     console.log(`[SS] Saucepan Seasoning v${EXT_VERSION} loading…`);
