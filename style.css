@@ -92,6 +92,7 @@
 }
 
 .ri-panel.ri-hidden { display: none; }
+.ri-hidden { display: none !important; }
 
 .ri-panel-header {
     display: flex;
