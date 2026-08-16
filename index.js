@@ -245,14 +245,32 @@
         const simpleModeBtn = document.getElementById('ri-mode-simple');
         const customModeBtn = document.getElementById('ri-mode-custom');
 
-        if (simpleArea) simpleArea.classList.toggle('ri-hidden', mode !== 'simple');
-        if (customArea) customArea.classList.toggle('ri-hidden', mode !== 'custom');
+        // Belt-and-suspenders: class + inline style, because ST's flex container
+        // can override class-only display:none in some theme configs
+        if (simpleArea) {
+            if (mode === 'simple') {
+                simpleArea.classList.remove('ri-hidden');
+                simpleArea.style.display = '';
+            } else {
+                simpleArea.classList.add('ri-hidden');
+                simpleArea.style.display = 'none';
+            }
+        }
+        if (customArea) {
+            if (mode === 'custom') {
+                customArea.classList.remove('ri-hidden');
+                customArea.style.display = '';
+            } else {
+                customArea.classList.add('ri-hidden');
+                customArea.style.display = 'none';
+            }
+        }
+
         if (simpleModeBtn) simpleModeBtn.classList.toggle('ri-mode-active', mode === 'simple');
         if (customModeBtn) customModeBtn.classList.toggle('ri-mode-active', mode === 'custom');
 
         if (mode === 'simple') {
             renderSimpleChips();
-            // Recompose from selections in case textarea was edited in custom mode
             s.text = composeSimpleInstruction(s.simple_selections || {});
         }
 

@@ -349,6 +349,10 @@
     border: 1px solid var(--SmartThemeBorderColor, rgba(128,128,128,0.25));
     border-radius: 4px;
     word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    overflow: visible;
+    max-height: none;
     opacity: 0.8;
     margin: 0;
 }
