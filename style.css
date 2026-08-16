@@ -1,7 +1,6 @@
 /* =============================================
-   Response Instructions + Write For Me
+   Saucepan Seasoning
    SillyTavern Extension — style.css
-   Fully inline panels, no modals anywhere.
    ============================================= */
 
 /* ── The Bar ── */
@@ -253,6 +252,108 @@
     background: #fff !important;
 }
 
+/* ── Mode Toggle (Simple / Custom) ── */
+.ri-mode-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(128,128,128,0.4));
+    border-radius: 5px;
+    overflow: hidden;
+    align-self: flex-start;
+}
+
+.ri-mode-btn {
+    flex: 1;
+    padding: 4px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #aaa);
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+}
+
+.ri-mode-btn + .ri-mode-btn {
+    border-left: 1px solid var(--SmartThemeBorderColor, rgba(128,128,128,0.4));
+}
+
+.ri-mode-btn:hover {
+    background: rgba(128,128,128,0.1);
+    color: var(--SmartThemeBodyColor, #ccc);
+}
+
+.ri-mode-btn.ri-mode-active {
+    background: rgba(128,128,128,0.2);
+    color: var(--SmartThemeQuoteColor, var(--SmartThemeBodyColor, #fff));
+}
+
+/* ── Simple Mode Chips ── */
+.ri-chips-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ri-chips-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--SmartThemeQuoteColor, var(--SmartThemeBodyColor, #aaa));
+    opacity: 0.75;
+    padding: 0 1px;
+}
+
+.ri-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.ri-chip {
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    border-radius: 20px;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(128,128,128,0.4));
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #bbb);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+.ri-chip:hover {
+    background: rgba(128,128,128,0.12);
+    color: var(--SmartThemeBodyColor, #ddd);
+}
+
+.ri-chip.ri-chip-active {
+    background: rgba(128,128,128,0.25);
+    border-color: var(--SmartThemeQuoteColor, var(--SmartThemeBodyColor, rgba(200,200,200,0.6)));
+    color: var(--SmartThemeQuoteColor, var(--SmartThemeBodyColor, #fff));
+}
+
+/* ── Live Preview ── */
+.ri-preview {
+    font-size: 0.78rem;
+    color: var(--SmartThemeBodyColor, #aaa);
+    line-height: 1.5;
+    padding: 5px 8px;
+    background: rgba(128,128,128,0.07);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(128,128,128,0.25));
+    border-radius: 4px;
+    word-break: break-word;
+    opacity: 0.8;
+    margin: 0;
+}
+
+.ri-preview.ri-hidden { display: none; }
+
 /* ── Library Panel save row ── */
 .ri-lib-save-row {
     display: flex;
@@ -333,47 +434,47 @@
     background: rgba(229,115,115,0.12) !important;
 }
 
-/* ── Preset Compatibility Banner ── */
-.ri-compat-banner {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 8px 10px;
-    background: rgba(255, 180, 0, 0.12);
-    border: 1px solid rgba(255, 180, 0, 0.4);
-    border-radius: 5px;
-    font-size: 0.78rem;
-    color: var(--SmartThemeBodyColor, #ddd);
-    line-height: 1.4;
-}
-
-.ri-compat-banner.ri-hidden { display: none; }
-
-.ri-compat-banner i.fa-triangle-exclamation {
-    color: #ffb400;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-.ri-compat-text {
-    flex: 1;
-    min-width: 0;
-}
-
-.ri-compat-actions {
-    display: flex;
-    gap: 4px;
-    flex-shrink: 0;
-}
-
-.ri-compat-actions .ri-icon-btn {
-    font-size: 0.75rem;
-    padding: 3px 8px;
-    white-space: nowrap;
-}
-
 /* ── WFM Panel extras ── */
 .wfm-panel { gap: 6px; }
+
+/* ── WFM Tab Bar ── */
+.wfm-tab-bar {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(128,128,128,0.4));
+    border-radius: 5px;
+    overflow: hidden;
+    align-self: stretch;
+}
+
+.wfm-tab {
+    flex: 1;
+    padding: 4px 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #aaa);
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+}
+
+.wfm-tab + .wfm-tab {
+    border-left: 1px solid var(--SmartThemeBorderColor, rgba(128,128,128,0.4));
+}
+
+.wfm-tab:hover {
+    background: rgba(128,128,128,0.1);
+    color: var(--SmartThemeBodyColor, #ccc);
+}
+
+.wfm-tab.wfm-tab-active {
+    background: rgba(128,128,128,0.2);
+    color: var(--SmartThemeQuoteColor, var(--SmartThemeBodyColor, #fff));
+}
 
 .wfm-section-label {
     font-size: 0.72rem;
