@@ -491,6 +491,7 @@
     opacity: 0.8;
 }
 
+.ri-simple-addon { min-height: 48px; max-height: 100px; }
 .wfm-editor    { min-height: 90px;  max-height: 200px; }
 .wfm-instruction { min-height: 52px; max-height: 100px; }
 

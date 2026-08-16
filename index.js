@@ -17,7 +17,7 @@
                 { value: 'medium', label: 'Medium', inject: 'Write a moderate length response.' },
                 { value: 'long',   label: 'Long',   inject: 'Write a long, detailed response.' },
                 { value: 'essay',  label: 'Essay',  inject: 'Write a lengthy, essay-style response with thorough detail.' },
-                { value: 'ramble', label: 'Ramble', inject: 'Write a lengthy, rambling response — don\'t cut yourself short.' },
+                { value: 'ramble', label: 'Ramble', inject: "Write a lengthy, rambling response — don't cut yourself short." },
             ],
         },
         {
@@ -67,24 +67,30 @@
         },
     ];
 
-    function composeSimpleInstruction(selections = {}) {
-        return SIMPLE_FIELDS
+    // Compose from chip selections + optional custom addon text
+    function composeSimpleInstruction(selections, customAddon) {
+        const parts = SIMPLE_FIELDS
             .map(field => {
                 const val = selections[field.key];
                 if (!val) return null;
                 const opt = field.options.find(o => o.value === val);
                 return opt ? opt.inject : null;
             })
-            .filter(Boolean)
-            .join(' ');
+            .filter(Boolean);
+        if (customAddon && customAddon.trim()) parts.push(customAddon.trim());
+        return parts.join(' ');
     }
 
     // ── Settings ──────────────────────────────────────────────────────────────
     const defaultSettings = {
         enabled: false,
-        text: '',
-        ri_mode: 'custom',          // 'simple' | 'custom'
-        simple_selections: {},       // { length: 'short', style: 'first', … }
+        ri_mode: 'simple',          // 'simple' | 'custom'
+        // simple mode state
+        simple_selections: {},
+        simple_custom_addon: '',
+        // custom mode state
+        custom_text: '',
+        // shared
         presets: [],
         wfm_presets: [],
         wfm_saved_drafts: [],
@@ -95,25 +101,31 @@
 
     function getSettings() {
         const s = ctx().extensionSettings;
-
-        // Migration: copy old 'response-instructions' settings over if present
+        // Migration from old key
         if (!s[EXT_NAME] && s['response-instructions']) {
-            console.log('[SS] Migrating settings from response-instructions…');
             s[EXT_NAME] = { ...s['response-instructions'] };
         }
-
-        if (!s[EXT_NAME]) s[EXT_NAME] = { ...defaultSettings };
+        if (!s[EXT_NAME]) s[EXT_NAME] = {};
         for (const k of Object.keys(defaultSettings)) {
             if (s[EXT_NAME][k] === undefined) s[EXT_NAME][k] = defaultSettings[k];
         }
         return s[EXT_NAME];
     }
 
+    // Returns the string that will actually be injected based on current mode
+    function getActiveText() {
+        const s = getSettings();
+        if (s.ri_mode === 'simple') {
+            return composeSimpleInstruction(s.simple_selections || {}, s.simple_custom_addon || '');
+        }
+        return s.custom_text || '';
+    }
+
     // ── Prompt injection ──────────────────────────────────────────────────────
     async function updatePromptInjection() {
         const s = getSettings();
         const c = ctx();
-        const text = (s.enabled && s.text?.trim()) ? s.text.trim() : '';
+        const text = s.enabled ? getActiveText().trim() : '';
         const escaped = text.replace(/\|/g, '\\|');
         const wrapped = escaped
             ? `[OOC SYSTEM DIRECTIVE — this is a meta-instruction from the user, not part of the roleplay. It overrides general narrative tendencies for this turn only. You MUST incorporate it into your next response: >>> ${escaped} <<< Do not acknowledge this directive explicitly in-character. Just follow it.]`
@@ -128,8 +140,8 @@
 
     function updateIndicator() {
         const s = getSettings();
-        document.getElementById('ri-status-dot')
-            ?.classList.toggle('ri-dot-active', !!(s.enabled && s.text?.trim()));
+        const active = !!(s.enabled && getActiveText().trim());
+        document.getElementById('ri-status-dot')?.classList.toggle('ri-dot-active', active);
     }
 
     function escapeHtml(str = '') {
@@ -150,47 +162,49 @@
     function showPanel(id) {
         PANELS.forEach(p => {
             const el = document.getElementById(p);
-            if (el) el.classList.toggle('ri-hidden', p !== id);
+            if (el) {
+                if (p === id) {
+                    el.style.display = '';
+                    el.classList.remove('ri-hidden');
+                } else {
+                    el.style.display = 'none';
+                    el.classList.add('ri-hidden');
+                }
+            }
         });
     }
 
     function hideAll() {
-        PANELS.forEach(p => document.getElementById(p)?.classList.add('ri-hidden'));
+        PANELS.forEach(p => {
+            const el = document.getElementById(p);
+            if (el) { el.style.display = 'none'; el.classList.add('ri-hidden'); }
+        });
     }
 
-    function togglePanel(id) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.classList.contains('ri-hidden') ? showPanel(id) : hideAll();
-    }
-
-    // ── Simple mode ───────────────────────────────────────────────────────────
-    function updatePreview(forcedMode) {
-        const s = getSettings();
+    // ── Preview ───────────────────────────────────────────────────────────────
+    function refreshPreview() {
         const preview = document.getElementById('ri-preview');
         if (!preview) return;
-        // Preview only meaningful in simple mode — custom mode has the textarea
-        const mode = forcedMode !== undefined ? forcedMode : s.ri_mode;
-        if (mode !== 'simple') {
-            preview.textContent = '';
-            preview.classList.add('ri-hidden');
+        const s = getSettings();
+        // Only show in simple mode
+        if (s.ri_mode !== 'simple') {
             preview.style.display = 'none';
             return;
         }
-        preview.style.display = '';
-        const composed = composeSimpleInstruction(s.simple_selections || {});
-        if (composed.trim()) {
-            preview.textContent = composed;
-            preview.classList.remove('ri-hidden');
+        const text = composeSimpleInstruction(s.simple_selections || {}, s.simple_custom_addon || '');
+        if (text.trim()) {
+            preview.textContent = text;
+            preview.style.display = '';
         } else {
             preview.textContent = '';
-            preview.classList.add('ri-hidden');
+            preview.style.display = 'none';
         }
     }
 
-    function renderSimpleChips() {
+    // ── Simple mode chips ─────────────────────────────────────────────────────
+    function renderChips() {
         const s = getSettings();
-        const container = document.getElementById('ri-simple-area');
+        const container = document.getElementById('ri-chips-container');
         if (!container) return;
         container.innerHTML = '';
 
@@ -198,90 +212,74 @@
             const group = document.createElement('div');
             group.className = 'ri-chips-group';
 
-            const groupLabel = document.createElement('div');
-            groupLabel.className = 'ri-chips-label';
-            groupLabel.textContent = field.label;
-            group.appendChild(groupLabel);
+            const label = document.createElement('div');
+            label.className = 'ri-chips-label';
+            label.textContent = field.label;
+            group.appendChild(label);
 
-            const chips = document.createElement('div');
-            chips.className = 'ri-chips-row';
+            const row = document.createElement('div');
+            row.className = 'ri-chips-row';
 
             field.options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'ri-chip';
                 btn.textContent = opt.label;
-                btn.dataset.field = field.key;
-                btn.dataset.value = opt.value;
                 if ((s.simple_selections || {})[field.key] === opt.value) {
                     btn.classList.add('ri-chip-active');
                 }
                 btn.addEventListener('click', async () => {
                     if (!s.simple_selections) s.simple_selections = {};
-                    // Toggle off if already active
+                    // Toggle off if clicking active chip
                     if (s.simple_selections[field.key] === opt.value) {
                         delete s.simple_selections[field.key];
                     } else {
                         s.simple_selections[field.key] = opt.value;
                     }
-                    // Update chip active states for this field
-                    chips.querySelectorAll('.ri-chip').forEach(c => {
-                        c.classList.toggle('ri-chip-active', c.dataset.value === s.simple_selections[field.key]);
+                    // Update active state within this row only
+                    row.querySelectorAll('.ri-chip').forEach(c => {
+                        c.classList.toggle('ri-chip-active', c.textContent === opt.label && s.simple_selections[field.key] === opt.value);
                     });
-                    // Sync composed string to s.text so injection + presets work normally
-                    s.text = composeSimpleInstruction(s.simple_selections);
-                    updatePreview();
-                    await updatePromptInjection();
+                    // Re-render to be safe
+                    renderChips();
+                    refreshPreview();
                     updateIndicator();
+                    await updatePromptInjection();
                     save();
                 });
-                chips.appendChild(btn);
+                row.appendChild(btn);
             });
 
-            group.appendChild(chips);
+            group.appendChild(row);
             container.appendChild(group);
         });
     }
 
-    function switchMode(mode) {
+    // ── Mode switching ────────────────────────────────────────────────────────
+    function setMode(mode) {
         const s = getSettings();
         s.ri_mode = mode;
         save();
 
-        const simpleArea = document.getElementById('ri-simple-area');
-        const customArea = document.getElementById('ri-custom-area');
-        const simpleModeBtn = document.getElementById('ri-mode-simple');
-        const customModeBtn = document.getElementById('ri-mode-custom');
-
-        // Belt-and-suspenders: class + inline style, because ST's flex container
-        // can override class-only display:none in some theme configs
-        if (simpleArea) {
-            if (mode === 'simple') {
-                simpleArea.classList.remove('ri-hidden');
-                simpleArea.style.display = '';
-            } else {
-                simpleArea.classList.add('ri-hidden');
-                simpleArea.style.display = 'none';
-            }
-        }
-        if (customArea) {
-            if (mode === 'custom') {
-                customArea.classList.remove('ri-hidden');
-                customArea.style.display = '';
-            } else {
-                customArea.classList.add('ri-hidden');
-                customArea.style.display = 'none';
-            }
-        }
-
-        if (simpleModeBtn) simpleModeBtn.classList.toggle('ri-mode-active', mode === 'simple');
-        if (customModeBtn) customModeBtn.classList.toggle('ri-mode-active', mode === 'custom');
+        const simpleArea  = document.getElementById('ri-simple-area');
+        const customArea  = document.getElementById('ri-custom-area');
+        const simpleBtn   = document.getElementById('ri-mode-simple');
+        const customBtn   = document.getElementById('ri-mode-custom');
 
         if (mode === 'simple') {
-            renderSimpleChips();
-            s.text = composeSimpleInstruction(s.simple_selections || {});
+            simpleArea.style.display  = '';
+            customArea.style.display  = 'none';
+            simpleBtn.classList.add('ri-mode-active');
+            customBtn.classList.remove('ri-mode-active');
+            renderChips();
+        } else {
+            simpleArea.style.display  = 'none';
+            customArea.style.display  = '';
+            simpleBtn.classList.remove('ri-mode-active');
+            customBtn.classList.add('ri-mode-active');
         }
 
-        updatePreview(mode);
+        refreshPreview();
+        updateIndicator();
     }
 
     // ── RI Preset Library ─────────────────────────────────────────────────────
@@ -324,12 +322,11 @@
                 const s = getSettings();
                 const preset = s.presets[parseInt(btn.dataset.idx)];
                 if (!preset) return;
-                // Always load into custom mode — presets store plain strings
-                s.text = preset.text;
-                s.ri_mode = 'custom';
-                const ta = document.getElementById('ri-textarea');
+                // Presets always load into custom mode
+                s.custom_text = preset.text;
+                const ta = document.getElementById('ri-custom-textarea');
                 if (ta) ta.value = preset.text;
-                switchMode('custom');
+                setMode('custom');
                 await updatePromptInjection(); updateIndicator(); save();
                 showPanel('ri-panel');
             });
@@ -344,7 +341,7 @@
 
     function saveRiPreset() {
         const s = getSettings();
-        const text = s.text?.trim();
+        const text = getActiveText().trim();
         if (!text) { window.toastr?.warning('Nothing to save — instructions are empty.'); return; }
         const nameInput = document.getElementById('ri-preset-name-input');
         const name = nameInput?.value?.trim() || `Preset ${s.presets.length + 1}`;
@@ -422,33 +419,34 @@
     let wfmDrafts = [];
     let wfmCurrentDraft = 0;
     let wfmGenerating = false;
-    let wfmActiveTab = 'draft'; // 'draft' | 'saved'
 
     function switchWfmTab(tab) {
-        wfmActiveTab = tab;
-        const draftTab = document.getElementById('wfm-tab-draft');
-        const savedTab = document.getElementById('wfm-tab-saved');
+        const draftTab  = document.getElementById('wfm-tab-draft');
+        const savedTab  = document.getElementById('wfm-tab-saved');
         const draftArea = document.getElementById('wfm-draft-area');
         const savedArea = document.getElementById('wfm-saved-area');
-
-        if (draftTab) draftTab.classList.toggle('wfm-tab-active', tab === 'draft');
-        if (savedTab) savedTab.classList.toggle('wfm-tab-active', tab === 'saved');
-        if (draftArea) draftArea.classList.toggle('ri-hidden', tab !== 'draft');
-        if (savedArea) savedArea.classList.toggle('ri-hidden', tab !== 'saved');
-
-        if (tab === 'saved') renderSavedDrafts();
+        if (tab === 'draft') {
+            draftTab.classList.add('wfm-tab-active');
+            savedTab.classList.remove('wfm-tab-active');
+            draftArea.style.display = '';
+            savedArea.style.display = 'none';
+        } else {
+            savedTab.classList.add('wfm-tab-active');
+            draftTab.classList.remove('wfm-tab-active');
+            savedArea.style.display = '';
+            draftArea.style.display = 'none';
+            renderSavedDrafts();
+        }
     }
 
     function saveDraft() {
         const s = getSettings();
-        const editor = document.getElementById('wfm-editor');
-        const text = editor?.value?.trim();
+        const text = document.getElementById('wfm-editor')?.value?.trim();
         if (!text) { window.toastr?.warning('Nothing to save — draft is empty.'); return; }
         if (!s.wfm_saved_drafts) s.wfm_saved_drafts = [];
         s.wfm_saved_drafts.unshift({ text, saved_at: Date.now() });
         save();
         window.toastr?.success('Draft saved!');
-        // Flash the bookmark button
         const btn = document.getElementById('wfm-save-draft-btn');
         if (btn) {
             btn.querySelector('i')?.classList.replace('fa-regular', 'fa-solid');
@@ -481,7 +479,6 @@
             btn.addEventListener('click', () => {
                 const draft = getSettings().wfm_saved_drafts[parseInt(btn.dataset.idx)];
                 if (!draft) return;
-                // Push into drafts array and switch to draft tab
                 wfmDrafts.push(draft.text);
                 wfmCurrentDraft = wfmDrafts.length - 1;
                 updateDraftNav();
@@ -494,15 +491,6 @@
                 save(); renderSavedDrafts();
             });
         });
-    }
-
-    function commitWfmDraft() {
-        const editor = document.getElementById('wfm-editor');
-        const stTextarea = document.getElementById('send_textarea');
-        if (!editor || !stTextarea) return;
-        stTextarea.value = editor.value;
-        stTextarea.dispatchEvent(new Event('input', { bubbles: true }));
-        hideAll();
     }
 
     function updateDraftNav() {
@@ -526,6 +514,15 @@
         if (editor) editor.value = wfmDrafts[wfmCurrentDraft];
     }
 
+    function commitWfmDraft() {
+        const editor = document.getElementById('wfm-editor');
+        const stTextarea = document.getElementById('send_textarea');
+        if (!editor || !stTextarea) return;
+        stTextarea.value = editor.value;
+        stTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+        hideAll();
+    }
+
     async function generateWfmDraft() {
         if (wfmGenerating) return;
         const c = ctx();
@@ -534,10 +531,8 @@
         const instruction = document.getElementById('wfm-instruction')?.value?.trim() || '';
         const charName = c.name2 || 'the character';
         const userName = c.name1 || 'User';
-
-        const recentMessages = (c.chat || []).slice(-10).map(m =>
-            `${m.is_user ? userName : charName}: ${m.mes}`
-        ).join('\n');
+        const recentMessages = (c.chat || []).slice(-10)
+            .map(m => `${m.is_user ? userName : charName}: ${m.mes}`).join('\n');
 
         let prompt = `[Write ${userName}'s next message in this roleplay with ${charName}. Write ONLY the message content, no labels or preamble.`;
         if (instruction) prompt += ` Instruction: ${instruction}.`;
@@ -580,6 +575,7 @@
         if (!sendForm) { console.error('[SS] #send_form not found'); return; }
 
         const s = getSettings();
+        const isSimple = s.ri_mode === 'simple';
 
         // ── Bar ──
         const bar = document.createElement('div');
@@ -599,7 +595,8 @@
         // ── RI Panel ──
         const riPanel = document.createElement('div');
         riPanel.id = 'ri-panel';
-        riPanel.className = 'ri-panel ri-hidden';
+        riPanel.className = 'ri-panel';
+        riPanel.style.display = 'none';
         riPanel.innerHTML = `
             <div class="ri-panel-header">
                 <span class="ri-panel-title"><i class="fa-solid fa-scroll"></i> Response Instructions</span>
@@ -620,22 +617,29 @@
                 </div>
             </div>
             <div class="ri-mode-toggle">
-                <button id="ri-mode-simple" class="ri-mode-btn ${s.ri_mode === 'simple' ? 'ri-mode-active' : ''}">Simple</button>
-                <button id="ri-mode-custom" class="ri-mode-btn ${s.ri_mode !== 'simple' ? 'ri-mode-active' : ''}">Custom</button>
+                <button id="ri-mode-simple" class="ri-mode-btn ${isSimple ? 'ri-mode-active' : ''}">Simple</button>
+                <button id="ri-mode-custom" class="ri-mode-btn ${!isSimple ? 'ri-mode-active' : ''}">Custom</button>
             </div>
-            <div id="ri-simple-area" class="${s.ri_mode !== 'simple' ? 'ri-hidden' : ''}"></div>
-            <div id="ri-custom-area" class="${s.ri_mode === 'simple' ? 'ri-hidden' : ''}">
-                <textarea id="ri-textarea" class="ri-textarea"
+            <div id="ri-simple-area" style="display:${isSimple ? '' : 'none'}">
+                <div class="ri-chips-label" style="margin-bottom:4px">Your own instructions</div>
+                <textarea id="ri-simple-addon" class="ri-textarea ri-simple-addon"
+                    placeholder="Anything else? e.g. {{companion}} loses his memories"
+                >${escapeHtml(s.simple_custom_addon || '')}</textarea>
+                <div id="ri-chips-container"></div>
+                <p id="ri-preview" class="ri-preview" style="display:none"></p>
+            </div>
+            <div id="ri-custom-area" style="display:${!isSimple ? '' : 'none'}">
+                <textarea id="ri-custom-textarea" class="ri-textarea"
                     placeholder="Write response instructions here… No character limit. Injected via /inject for the next reply."
-                >${escapeHtml(s.text || '')}</textarea>
-            </div>
-            <p id="ri-preview" class="ri-preview ri-hidden"></p>`;
+                >${escapeHtml(s.custom_text || '')}</textarea>
+            </div>`;
         bar.parentNode.insertBefore(riPanel, bar);
 
         // ── RI Library Panel ──
         const riLibPanel = document.createElement('div');
         riLibPanel.id = 'ri-lib-panel';
-        riLibPanel.className = 'ri-panel ri-hidden';
+        riLibPanel.className = 'ri-panel';
+        riLibPanel.style.display = 'none';
         riLibPanel.innerHTML = `
             <div class="ri-panel-header">
                 <span class="ri-panel-title"><i class="fa-solid fa-folder-open"></i> RI Presets</span>
@@ -660,7 +664,8 @@
         // ── WFM Panel ──
         const wfmPanel = document.createElement('div');
         wfmPanel.id = 'wfm-panel';
-        wfmPanel.className = 'ri-panel ri-hidden wfm-panel';
+        wfmPanel.className = 'ri-panel wfm-panel';
+        wfmPanel.style.display = 'none';
         wfmPanel.innerHTML = `
             <div class="ri-panel-header">
                 <span class="ri-panel-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Write For Me</span>
@@ -705,7 +710,7 @@
                     </button>
                 </div>
             </div>
-            <div id="wfm-saved-area" class="ri-hidden">
+            <div id="wfm-saved-area" style="display:none">
                 <div id="wfm-saved-list" class="ri-preset-list" style="margin-top:6px"></div>
             </div>`;
         bar.parentNode.insertBefore(wfmPanel, bar);
@@ -713,7 +718,8 @@
         // ── WFM Library Panel ──
         const wfmLibPanel = document.createElement('div');
         wfmLibPanel.id = 'wfm-lib-panel';
-        wfmLibPanel.className = 'ri-panel ri-hidden';
+        wfmLibPanel.className = 'ri-panel';
+        wfmLibPanel.style.display = 'none';
         wfmLibPanel.innerHTML = `
             <div class="ri-panel-header">
                 <span class="ri-panel-title"><i class="fa-solid fa-folder-open"></i> WFM Presets</span>
@@ -735,71 +741,77 @@
             <div id="wfm-preset-list" class="ri-preset-list"></div>`;
         bar.parentNode.insertBefore(wfmLibPanel, bar);
 
-        // ── Wire up bar ──
+        // ── Wire: bar buttons ──
         addTapListener(document.getElementById('ri-bar-ri-btn'), () => {
-            if (document.getElementById('ri-panel').classList.contains('ri-hidden')) {
+            if (riPanel.style.display === 'none') {
                 showPanel('ri-panel');
-                if (s.ri_mode === 'simple') renderSimpleChips();
-                updatePreview();
             } else {
                 hideAll();
             }
         });
         addTapListener(document.getElementById('ri-bar-wfm-btn'), () => {
-            const stTextarea = document.getElementById('send_textarea');
-            const editor = document.getElementById('wfm-editor');
-            if (editor && stTextarea?.value?.trim() && !editor.value) editor.value = stTextarea.value;
-            if (document.getElementById('wfm-panel').classList.contains('ri-hidden')) {
-                showPanel('wfm-panel'); updateDraftNav();
+            if (wfmPanel.style.display === 'none') {
+                const stTextarea = document.getElementById('send_textarea');
+                const editor = document.getElementById('wfm-editor');
+                if (editor && stTextarea?.value?.trim() && !editor.value) editor.value = stTextarea.value;
+                showPanel('wfm-panel');
+                updateDraftNav();
             } else {
                 hideAll();
             }
         });
 
-        // ── Wire up RI panel ──
-        const riTextarea = document.getElementById('ri-textarea');
-        let debounceTimer = null;
-        riTextarea.addEventListener('input', () => {
-            s.text = riTextarea.value;
-            updateIndicator(); save(); updatePreview();
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => updatePromptInjection(), 400);
-        });
+        // ── Wire: RI panel ──
         document.getElementById('ri-toggle').addEventListener('change', async e => {
             s.enabled = e.target.checked;
             await updatePromptInjection(); updateIndicator(); save();
         });
+
+        document.getElementById('ri-mode-simple').addEventListener('click', () => setMode('simple'));
+        document.getElementById('ri-mode-custom').addEventListener('click', () => setMode('custom'));
+
+        // Simple addon textarea
+        document.getElementById('ri-simple-addon').addEventListener('input', async e => {
+            s.simple_custom_addon = e.target.value;
+            refreshPreview(); updateIndicator(); save();
+            await updatePromptInjection();
+        });
+
+        // Custom textarea
+        document.getElementById('ri-custom-textarea').addEventListener('input', async e => {
+            s.custom_text = e.target.value;
+            updateIndicator(); save();
+            await updatePromptInjection();
+        });
+
         document.getElementById('ri-clear-btn').addEventListener('click', async () => {
-            riTextarea.value = ''; s.text = ''; s.enabled = false;
-            if (!s.simple_selections) s.simple_selections = {};
-            else Object.keys(s.simple_selections).forEach(k => delete s.simple_selections[k]);
+            s.enabled = false;
+            s.simple_selections = {};
+            s.simple_custom_addon = '';
+            s.custom_text = '';
             document.getElementById('ri-toggle').checked = false;
-            if (s.ri_mode === 'simple') renderSimpleChips();
-            updatePreview();
+            document.getElementById('ri-simple-addon').value = '';
+            document.getElementById('ri-custom-textarea').value = '';
+            renderChips();
+            refreshPreview();
             await updatePromptInjection(); updateIndicator(); save();
         });
+
         document.getElementById('ri-close-btn').addEventListener('click', hideAll);
         document.getElementById('ri-library-btn').addEventListener('click', () => {
             renderPresets(); showPanel('ri-lib-panel');
         });
 
-        // Mode toggle
-        document.getElementById('ri-mode-simple').addEventListener('click', () => switchMode('simple'));
-        document.getElementById('ri-mode-custom').addEventListener('click', () => switchMode('custom'));
-
-        // ── Wire up RI library panel ──
+        // ── Wire: RI library ──
         document.getElementById('ri-lib-back-btn').addEventListener('click', () => showPanel('ri-panel'));
         document.getElementById('ri-lib-close-btn').addEventListener('click', hideAll);
         document.getElementById('ri-save-preset-btn').addEventListener('click', saveRiPreset);
 
-        // ── Wire up WFM panel ──
+        // ── Wire: WFM panel ──
         document.getElementById('wfm-close-btn').addEventListener('click', hideAll);
         document.getElementById('wfm-generate-btn').addEventListener('click', generateWfmDraft);
         document.getElementById('wfm-use-btn').addEventListener('click', commitWfmDraft);
         document.getElementById('wfm-save-draft-btn').addEventListener('click', saveDraft);
-        document.getElementById('wfm-lib-btn').addEventListener('click', () => {
-            renderWfmPresets(); showPanel('wfm-lib-panel');
-        });
         document.getElementById('wfm-tab-draft').addEventListener('click', () => switchWfmTab('draft'));
         document.getElementById('wfm-tab-saved').addEventListener('click', () => switchWfmTab('saved'));
         document.getElementById('wfm-prev-draft').addEventListener('click', () => {
@@ -808,17 +820,20 @@
         document.getElementById('wfm-next-draft').addEventListener('click', () => {
             if (wfmCurrentDraft < wfmDrafts.length - 1) { wfmCurrentDraft++; updateDraftNav(); }
         });
+        document.getElementById('wfm-lib-btn').addEventListener('click', () => {
+            renderWfmPresets(); showPanel('wfm-lib-panel');
+        });
 
-        // ── Wire up WFM library panel ──
+        // ── Wire: WFM library ──
         document.getElementById('wfm-lib-back-btn').addEventListener('click', () => showPanel('wfm-panel'));
         document.getElementById('wfm-lib-close-btn').addEventListener('click', hideAll);
         document.getElementById('wfm-save-preset-btn').addEventListener('click', saveWfmPreset);
 
-        // Init simple chips if in simple mode
-        if (s.ri_mode === 'simple') renderSimpleChips();
+        // ── Init ──
+        if (isSimple) renderChips();
+        refreshPreview();
         updateIndicator();
-        updatePreview();
-        console.log('[SS] UI injected successfully');
+        console.log('[SS] UI injected');
     }
 
     // ── Boot ──────────────────────────────────────────────────────────────────
