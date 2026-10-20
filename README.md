@@ -1,6 +1,6 @@
 # Saucepan Seasoning — SillyTavern
 
-<img src="https://i.imgur.com/x8a5kCp.png" alt="SaucepanSeasoning">
+<img src="https://i.imgur.com/GT1KvQV.png" alt="SaucepanSeasoning">
 
 Port of SaucepanAI's response instructions and write-for-me UI for **SillyTavern**, as a native extension. Made this because I loved Saucepan's in-chat tools too much but kept getting pulled back to ST for how customizable it is — so I just ported them. now I don't have to choose lol.
 
